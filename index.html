@@ -1,0 +1,547 @@
+<!DOCTYPE html >
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Impact Game</title>
+	<style type="text/css">
+		html,body {
+			background-color: #333;
+			color: #fff;
+			font-family: helvetica, arial, sans-serif;
+			margin: 0;
+			padding: 0;
+			font-size: 12pt;
+		}
+		
+		#canvas {
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: 0;
+			bottom: 0;
+			margin: auto;
+			z-index: 5;
+		}
+		
+		#fowcanvas {
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: 0;
+			bottom: 0;
+			margin: auto;
+			visibility: hidden;
+			z-index: 3;
+		}
+		
+		.gamelayer {
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width : 300 px;
+			height: 320 px;
+			margin-left: -180px;
+			margin-top:  -50px; 
+			border: 1;
+			z-index: 5;
+			white-space: nowrap;
+		}
+		
+		.gamelayer2 {
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width : 300 px;
+			height: 320 px;
+			margin-left: -225px;
+			margin-top:  -50px; 
+			border: 1;
+			z-index: 5;
+			white-space: nowrap;
+		}
+		
+		.pauseButton {
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width : 300 px;
+			height: 320 px;
+			margin-left: -235px;
+			margin-top:  -160px; 
+			border: 1;
+			z-index: 5;
+			white-space: nowrap;
+		}
+		
+		.pauseMenu{
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width : 300 px;
+			height: 320 px;
+			margin-left: -110px;
+			margin-top:  -100px; 
+			border: 1;
+			z-index: 5;
+			white-space: nowrap;
+		}
+		
+		.resultsTableHeaders{
+			border-width: medium;
+			border-style: solid;
+			border-color: #FFFFFF;
+			font-size: 8pt;
+		}
+		
+		.resultsTableColumns{
+			font-size: 8pt;
+		}
+		
+		.endGame {
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width : 480 px;
+			height: 320 px;
+			margin-left: -180px;
+			margin-top: -60px;
+			border: 0;
+			z-index: 5;
+			font-size: 49pt;
+			font-color: #FFFFFF;
+			white-space: nowrap;
+		}
+	</style>
+	
+	<script type="text/javascript">
+		//Variables defined here are global to impact
+		game = document.createElement('input');
+		game.setAttribute('id', 'gameStarted');
+		game.setAttribute('value', 0);
+		//game.value = 0;
+		/*menu = document.createElement('input');
+		menu.setAttribute('id', 'menuOptions');
+		menu.setAttribute('optionSelected', 0); // 0 - None  1 - PlayGame  2 - Options  3 - Exit
+		menu.optionSelected = 0;*/
+		var menuOption = 0; //0 - None  1 - PlayGame  2 - Options  3 - Exit
+		//document.getElementById('gameStarted').value = false;
+		var cpuPlayers = new Array();
+		var playerColors = new Array();
+		var resources;
+		var tileSetSelected;
+		var mapWidth;
+		var mapHeight;
+		var goToResults = 0;
+		var returnToMainMenu = 1;
+		var gamePaused = 0;
+		var playersSelected = [];
+		var playerTotalResources = [];
+		var playerSpentResources = [];
+		var playerUnitsTrained = [];
+		var playerUnitsLost = [];
+		var playerBuildingsBuilt = [];
+		var playerBuildingsLost = [];
+		var playerFinalScore = [];
+		
+		function showSkirmish(){
+			document.getElementById('skirmish').style.display = 'block';
+		};
+		function hideSkirmish(){
+			document.getElementById('skirmish').style.display = 'none';
+		};
+		
+		function showResultsMenu(){
+			document.getElementById('resultsMenu').style.display = 'block';
+		};
+		
+		function hideResultsMenu(){
+			document.getElementById('resultsMenu').style.display = 'none';
+		};
+		
+		function showVictory(){
+			document.getElementById('victory').style.display = 'block';
+		};
+		
+		function hideVictory(){
+			document.getElementById('victory').style.display = 'none';
+		};
+		
+		function showDefeat(){
+			document.getElementById('defeat').style.display = 'block';
+		};
+		
+		function hideDefeat(){
+			document.getElementById('defeat').style.display = 'none';
+		};
+		
+		function showPauseButton(){
+			document.getElementById('pauseGameButton').style.display = 'block';
+		};
+		
+		function hidePauseButton(){
+			document.getElementById('pauseGameButton').style.display = 'none';
+		};
+		
+		function showPauseMenu(){
+			document.getElementById('pauseGameMenu').style.display = 'block';
+		};
+		
+		function hidePauseMenu(){
+			document.getElementById('pauseGameMenu').style.display = 'none';
+		};
+		
+		function pauseGame(){
+			gamePaused = 1;
+			hidePauseButton();
+			showPauseMenu();
+		};
+		
+		function unpauseGame(){
+			gamePaused = 0;
+			hidePauseMenu();
+			showPauseButton();
+		};
+		
+		function hideCanvas() {
+			$("#canvas").toggle();
+		};
+		
+		function setResultPlayerSelected(playerNumber){
+			if (playerNumber == 1){
+				document.getElementById('pl1selected').innerHTML = playersSelected[0];
+			}else if (playerNumber == 2){
+				if (typeof(playersSelected[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl2selected').innerHTML = playersSelected[playerNumber - 1];
+				}
+			}else if (playerNumber == 3){
+				if (typeof(playersSelected[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl3selected').innerHTML = playersSelected[playerNumber - 1];
+				}
+			}else if (playerNumber == 4){
+				if (typeof(playersSelected[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl4selected').innerHTML = playersSelected[playerNumber - 1];
+				}
+			}
+		};
+		
+		function setResultUnitsTrained(playerNumber){
+			if (playerNumber == 1){
+				document.getElementById('pl1unitsTrained').innerHTML = playerUnitsTrained[0];
+			}else if (playerNumber == 2){
+				if (typeof(playerUnitsTrained[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl2unitsTrained').innerHTML = playerUnitsTrained[playerNumber - 1];
+				}
+			}else if (playerNumber == 3){
+				if (typeof(playerUnitsTrained[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl3unitsTrained').innerHTML = playerUnitsTrained[playerNumber - 1];
+				}
+			}else if (playerNumber == 4){
+				if (typeof(playerUnitsTrained[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl4unitsTrained').innerHTML = playerUnitsTrained[playerNumber - 1];
+				}
+			}
+		};
+		
+		function setResultUnitsLost(playerNumber){
+			if (playerNumber == 1){
+				document.getElementById('pl1unitsLost').innerHTML = playerUnitsLost[0];
+			}else if (playerNumber == 2){
+				if (typeof(playerUnitsLost[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl2unitsLost').innerHTML = playerUnitsLost[playerNumber - 1];
+				}
+			}else if (playerNumber == 3){
+				if (typeof(playerUnitsLost[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl3unitsLost').innerHTML = playerUnitsLost[playerNumber - 1];
+				}
+			}else if (playerNumber == 4){
+				if (typeof(playerUnitsLost[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl4unitsLost').innerHTML = playerUnitsLost[playerNumber - 1];
+				}
+			}
+		};
+		
+		function setResultTotalRes(playerNumber){
+			if (playerNumber == 1){
+				document.getElementById('pl1ResourcesGathered').innerHTML = playerTotalResources[0];
+			}else if (playerNumber == 2){
+				if (typeof(playerTotalResources[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl2ResourcesGathered').innerHTML = playerTotalResources[playerNumber - 1];
+				}
+			}else if (playerNumber == 3){
+				if (typeof(playerTotalResources[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl3ResourcesGathered').innerHTML = playerTotalResources[playerNumber - 1];
+				}
+			}else if (playerNumber == 4){
+				if (typeof(playerTotalResources[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl4ResourcesGathered').innerHTML = playerTotalResources[playerNumber - 1];
+				}
+			}
+		};
+		
+		function setResultResSpent(playerNumber){
+			if (playerNumber == 1){
+				document.getElementById('pl1ResourcesSpent').innerHTML = playerSpentResources[0];
+			}else if (playerNumber == 2){
+				if (typeof(playerSpentResources[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl2ResourcesSpent').innerHTML = playerSpentResources[playerNumber - 1];
+				}
+			}else if (playerNumber == 3){
+				if (typeof(playerSpentResources[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl3ResourcesSpent').innerHTML = playerSpentResources[playerNumber - 1];
+				}
+			}else if (playerNumber == 4){
+				if (typeof(playerSpentResources[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl4ResourcesSpent').innerHTML = playerSpentResources[playerNumber - 1];
+				}
+			}
+		};
+		
+		function setResultFinalScore(playerNumber){
+			if (playerNumber == 1){
+				document.getElementById('pl1FinalScore').innerHTML = playerFinalScore[0];
+			}else if (playerNumber == 2){
+				if (typeof(playerFinalScore[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl2FinalScore').innerHTML = playerFinalScore[playerNumber - 1];
+				}
+			}else if (playerNumber == 3){
+				if (typeof(playerFinalScore[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl3FinalScore').innerHTML = playerFinalScore[playerNumber - 1];
+				}
+			}else if (playerNumber == 4){
+				if (typeof(playerFinalScore[playerNumber - 1]) != 'undefined'){
+					document.getElementById('pl4FinalScore').innerHTML = playerFinalScore[playerNumber - 1];
+				}
+			}
+		};
+		
+		function setCpuPlayers(){
+			var plSelect;
+			for (var i = 1; i <= 3; i++){
+				plSelect = document.getElementById('pl'+(i + 1));
+				cpuPlayers[i - 1] = plSelect.options[plSelect.selectedIndex].value;
+			}
+		};
+		
+		function setPlayerColors(){
+			var colorSelect;
+			for (var i = 1; i <= 4; i++){
+				colorSelect = document.getElementById('pl'+i+'color');
+				playerColors[i - 1] = parseInt(colorSelect.options[colorSelect.selectedIndex].value);
+			}
+		};
+		
+		function setPlayerResources(){
+			resources = parseInt(document.getElementById('resources').value);
+		};
+		
+		
+		function setTileSet(){
+			var tileSelect = document.getElementById('tileset');
+			tileSetSelected = parseInt(tileSelect.options[tileSelect.selectedIndex].value);
+		};
+		
+		function setMapSize(){
+			var widthSelect = document.getElementById('mapwidth');
+			var heightSelect = document.getElementById('mapheight');
+			mapWidth = parseInt(widthSelect.options[widthSelect.selectedIndex].value);
+			mapHeight = parseInt(heightSelect.options[heightSelect.selectedIndex].value);
+		};
+		
+		function startGame() {
+			if (game.value == 0){
+				setPlayerColors();
+				setCpuPlayers();
+			    setPlayerResources();
+				setTileSet();
+				setMapSize();
+				$("#skirmish").hide();
+				document.getElementById('canvas').style.visibility = 'visible';
+				game.value = 1;
+				console.log(game.value);
+				//document.getElementById('skirmish').style.visibility = "hidden";
+			}
+		};
+		
+		function goToResultsScreen() {
+			hidePauseButton();
+			hidePauseMenu();
+			gamePaused = 0;
+			goToResults = 1;
+			menuOption = 0;
+			game.value = 0;
+		};
+		
+		function returnMainMenu(){
+			returnToMainMenu = 1;
+		};
+	</script>
+	
+	<script type="text/javascript" src="lib/impact/impact.js">
+	</script>
+	<script type="text/javascript" src="lib/game/main.js">
+	</script>
+	<script type="text/javascript" src="jquery.js">
+	</script>
+</head>
+<body>
+<div id="gamecontainer">
+	<canvas id="canvas"></canvas>
+	<canvas id="fowcanvas"></canvas>
+	<div id="skirmish" class="gamelayer" style="display:none">
+	 <table>
+	   <tr>
+	    <td>Nickname: <input type="text" name="playername" value="Player 1" id="nick1" /></td>
+		<td>Color: <select id="pl1color">
+				  <option value="1" style="background-color:blue; color:white">&spades; Blue</option>
+				  <option value="2" style="background-color:red">&hearts; Red</option>
+				  <option value="3" style="background-color:green">&clubs; Green</option>
+				  <option value="4" style="background-color:yellow">&diams; Yellow</option>
+				</select> 
+         </td>
+	   </tr>
+	   <tr><td>
+		Player 2: <select id="pl2">
+				  <option value="closed">Closed</option>
+				  <option value="cpu" selected>CPU</option>
+				</select>
+	   </td>
+	    <td>Color: <select id="pl2color">
+				  <option value="1" style="background-color:blue; color:white">&spades; Blue</option>
+				  <option value="2" style="background-color:red" selected>&hearts; Red</option>
+				  <option value="3" style="background-color:green">&clubs; Green</option>
+				  <option value="4" style="background-color:yellow">&diams; Yellow</option>
+				</select> 
+         </td>
+	   </tr>
+	   <tr><td>
+		Player 3: <select id="pl3">
+				  <option value="closed" selected>Closed</option>
+				  <option value="cpu">CPU</option>
+				</select>
+	   </td>
+	    <td>Color: <select id="pl3color">
+				  <option value="1" style="background-color:blue; color:white">&spades; Blue</option>
+				  <option value="2" style="background-color:red">&hearts; Red</option>
+				  <option value="3" style="background-color:green" selected>&clubs; Green</option>
+				  <option value="4" style="background-color:yellow">&diams; Yellow</option>
+				</select> 
+         </td>
+	   </tr>
+	   <tr><td>
+		Player 4: <select id="pl4">
+				  <option value="closed" selected>Closed</option>
+				  <option value="cpu">CPU</option>
+				</select>
+	   </td>
+	    <td>Color: <select id="pl4color">
+				  <option value="1" style="background-color:blue; color:white">&spades; Blue</option>
+				  <option value="2" style="background-color:red">&hearts; Red</option>
+				  <option value="3" style="background-color:green">&clubs; Green</option>
+				  <option value="4" style="background-color:yellow" selected>&diams; Yellow</option>
+				</select> 
+         </td>
+	   </tr>
+	   <tr><td colspan=2 align="center">Map
+	   </td></tr>
+	   <tr><td>
+		Width: <select id='mapwidth'>
+				  <option value="40" >40</option>
+				  <option value="54" >54</option>
+				  <option value="68" >68</option>
+				  <option value="82" >82</option>
+				  <option value="96" >96</option>
+				  <option value="110" >110</option>
+				</select>
+				</td>
+		<td>Height: <select id='mapheight'>
+				  <option value="40" >40</option>
+				  <option value="54" >54</option>
+				  <option value="68" >68</option>
+				  <option value="82" >82</option>
+				  <option value="96" >96</option>
+				  <option value="110" >110</option>
+				</select>
+	   </td></tr>
+	   <tr><td >
+		Resources: <input id="resources" type="number" value=1000 min=1000 max=20000/>
+	   </td>
+	   <td align="center">
+		Tileset <select id="tileset">
+				  <option value="0">Grass</option>
+				  <option value="2" >Dirt</option>
+				  <option value="4" >Rocky</option>
+				  <option value="6" >Snow</option>
+				  <option value="8" >Metallic</option>
+				</select>
+	   </td></tr>
+	 </table>
+	 <button onclick="javascript:startGame()" >START!</button>
+	</div>
+	<div id="resultsMenu" class="gamelayer2" style="display:none">
+		<table>
+			<tr>
+				<th> </th>
+				<th class="resultsTableHeaders">Units Trained</th>
+				<th class="resultsTableHeaders">Units Lost</th>
+				<th class="resultsTableHeaders">Resources Collected</th>
+				<th class="resultsTableHeaders">Resources Spent</th>
+				<th class="resultsTableHeaders">Final</th>
+			</tr>
+			<tr>
+				<td class="resultsTableColumns" id = 'pl1selected'></td>
+				<td class="resultsTableColumns" id = 'pl1unitsTrained'></td>
+				<td class="resultsTableColumns" id = 'pl1unitsLost'></td>
+				<td class="resultsTableColumns" id = 'pl1ResourcesGathered'></td>
+				<td class="resultsTableColumns" id = 'pl1ResourcesSpent'></td>
+				<td class="resultsTableColumns" id = 'pl1FinalScore'></td>
+			</tr>	
+			<tr>
+				<td class="resultsTableColumns" id = 'pl2selected'></td>
+				<td class="resultsTableColumns" id = 'pl2unitsTrained'></td>
+				<td class="resultsTableColumns" id = 'pl2unitsLost'></td>
+				<td class="resultsTableColumns" id = 'pl2ResourcesGathered'></td>
+				<td class="resultsTableColumns" id = 'pl2ResourcesSpent'></td>
+				<td class="resultsTableColumns" id = 'pl2FinalScore'></td>
+			</tr>
+			<tr>
+				<td class="resultsTableColumns" id = 'pl3selected'></td>
+				<td class="resultsTableColumns" id = 'pl3unitsTrained'></td>
+				<td class="resultsTableColumns" id = 'pl3unitsLost'></td>
+				<td class="resultsTableColumns" id = 'pl3ResourcesGathered'></td>
+				<td class="resultsTableColumns" id = 'pl3ResourcesSpent'></td>
+				<td class="resultsTableColumns" id = 'pl3FinalScore'></td>
+			</tr>	
+			<tr>
+				<td class="resultsTableColumns" id = 'pl4selected'></td>
+				<td class="resultsTableColumns" id = 'pl4unitsTrained'></td>
+				<td class="resultsTableColumns" id = 'pl4unitsLost'></td>
+				<td class="resultsTableColumns" id = 'pl4ResourcesGathered'></td>
+				<td class="resultsTableColumns" id = 'pl4ResourcesSpent'></td>
+				<td class="resultsTableColumns" id = 'pl4FinalScore'></td>
+			</tr>
+		</table>
+		<button onclick="javascript:returnMainMenu()" >Main Menu</button>
+	</div>
+	<div id="pauseGameButton" class="pauseButton" style="display:none">
+		<button onclick="javascript:pauseGame()">In-Game Menu</button>
+	</div>
+	<div id="pauseGameMenu" class="pauseMenu" style="display:none">
+		GAME PAUSED <br><br>
+		<button onclick="javascript:unpauseGame()">Return to game</button><br>
+		<button onclick="javascript:goToResultsScreen()">Exit current game</button>
+	</div>
+	<div id="victory" class="endGame" style="display:none">
+		<table>
+			<tr><td align = "center">VICTORY!</td></tr>
+			<tr><td align = "center"><button onclick="javascript:goToResultsScreen()" >Results Menu</button></td></tr>
+		</table>
+	</div>
+	<div id="defeat" class="endGame" style="display:none">
+		<table>
+			<tr><td align = "center">DEFEAT!</td></tr>
+			<tr><td align = "center"><button onclick="javascript:goToResultsScreen()" >Results Menu</button></td></tr>
+		</table>
+	</div>
+</div>
+</body>
+</html>
